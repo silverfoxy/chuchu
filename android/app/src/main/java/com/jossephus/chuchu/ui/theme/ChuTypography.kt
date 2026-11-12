@@ -26,7 +26,7 @@ enum class ChuFontOption(
     val label: String,
     val regularFontResId: Int,
 ) {
-    JetBrainsMono("jetbrains_mono", "JetBrains Mono", R.font.jetbrains_mono_regular),
+    JetBrainsMono("jetbrains_mono", "JetBrains Mono Nerd Font", R.font.jetbrains_mono_regular),
     FiraCode("fira_code", "Fira Code", R.font.fira_code_regular),
     Hack("hack", "Hack", R.font.hack_regular),
     GeistMono("geist_mono", "Geist Mono", R.font.geist_mono_regular),
