@@ -4,6 +4,7 @@ import com.jossephus.chuchu.R
 import com.jossephus.chuchu.service.terminal.GhosttyBridge
 import com.jossephus.chuchu.service.terminal.TerminalMouseAction
 
+import android.os.Build
 import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.RectF
@@ -98,6 +99,9 @@ fun TerminalCanvas(
             ResourcesCompat.getFont(context, fontOption.regularFontResId)
                 ?: Typeface.MONOSPACE
         }.getOrDefault(Typeface.MONOSPACE)
+    }
+    val iconFont = remember(context) {
+        if (Build.VERSION.SDK_INT >= 31) BundledIconFont.load(context.resources) else null
     }
     val symbolsTypeface = remember(context) {
         runCatching {
@@ -665,6 +669,17 @@ fun TerminalCanvas(
                     val styleBits = firstFlags and TEXT_STYLE_MASK
                     val firstExtras = snapshot.graphemeExtras[i]
                     val firstGlyph = if (firstExtras == null || firstExtras.isEmpty()) null else snapshot.glyphAt(i)
+                    if (Build.VERSION.SDK_INT >= 31 && firstGlyph == null && iconFont?.contains(cp) == true) {
+                        val paint = symbolsTextPaint
+                        paint.color = fg
+                        paint.isFakeBoldText = (styleBits and TerminalSnapshot.CELL_FLAG_BOLD) != 0
+                        paint.isUnderlineText = (styleBits and TerminalSnapshot.CELL_FLAG_UNDERLINE) != 0
+                        paint.textSkewX = if ((styleBits and TerminalSnapshot.CELL_FLAG_ITALIC) != 0) -0.25f else 0f
+                        paint.alpha = if ((styleBits and TerminalSnapshot.CELL_FLAG_FAINT) != 0) FAINT_TEXT_ALPHA else 255
+                        iconFont.draw(nCanvas, cp, (i - rowStart) * cellWidth, baseline, paint)
+                        i += if (i + 1 < rowEnd && snapshot.isSpacerContinuation(i + 1)) 2 else 1
+                        continue
+                    }
                     val firstPaintChoice = if (firstGlyph == null) {
                         pickPaintChoice(
                             codepoint = cp,
@@ -716,6 +731,8 @@ fun TerminalCanvas(
 
                         val extras = snapshot.graphemeExtras[j]
                         val glyph = if (extras == null || extras.isEmpty()) null else snapshot.glyphAt(j)
+                        // Keep directly rendered icons out of Android text-shaping runs.
+                        if (Build.VERSION.SDK_INT >= 31 && glyph == null && iconFont?.contains(c) == true) break
                         val nextPaintChoice = if (glyph == null) {
                             pickPaintChoice(
                                 codepoint = c,
@@ -871,12 +888,11 @@ fun TerminalCanvas(
                         paint.textSkewX = 0f
                         paint.alpha = 255
                         paint.color = cursorTextColorArgb
-                        nCanvas.drawText(
-                            glyph,
-                            cursorLeft,
-                            cursorTop + baselineOffset,
-                            paint,
-                        )
+                        if (Build.VERSION.SDK_INT >= 31 && (extras == null || extras.isEmpty()) && iconFont?.contains(codepoint) == true) {
+                            iconFont.draw(nCanvas, codepoint, cursorLeft, cursorTop + baselineOffset, paint)
+                        } else {
+                            nCanvas.drawText(glyph, cursorLeft, cursorTop + baselineOffset, paint)
+                        }
                     }
                 }
             }
@@ -1051,7 +1067,7 @@ private fun paintForChoice(
  * weather icons, file-type icons, etc.). Everything outside these ranges that
  * the primary font cannot render is treated as an emoji/symbol cluster.
  */
-private fun isNerdFontPrivateUse(cp: Int): Boolean {
+internal fun isNerdFontPrivateUse(cp: Int): Boolean {
     return (cp in 0xE000..0xF8FF) ||
         (cp in 0xF0000..0xFFFFD) ||
         (cp in 0x100000..0x10FFFD)

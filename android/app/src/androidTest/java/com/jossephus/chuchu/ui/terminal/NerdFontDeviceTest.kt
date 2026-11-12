@@ -2,6 +2,7 @@ package com.jossephus.chuchu.ui.terminal
 
 import android.graphics.Paint
 import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Color
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
@@ -27,6 +28,25 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class NerdFontDeviceTest {
     @get:Rule val composeRule = createComposeRule()
+
+    @Test
+    fun directIconsIgnoreSystemTypeface() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val icons = checkNotNull(BundledIconFont.load(context.resources))
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textSize = 64f; color = Color.WHITE }
+        val expectedPaint = Paint(paint).apply {
+            typeface = ResourcesCompat.getFont(context, R.font.symbols_nerd_font_mono_regular)
+        }
+        for (cp in listOf(0xE718, 0xF489, 0xF024B)) {
+            assertTrue(icons.contains(cp))
+            val actual = Bitmap.createBitmap(120, 120, Bitmap.Config.ARGB_8888)
+            val expected = Bitmap.createBitmap(120, 120, Bitmap.Config.ARGB_8888)
+            icons.draw(Canvas(actual), cp, 20f, 85f, paint)
+            Canvas(expected).drawText(String(Character.toChars(cp)), 20f, 85f, expectedPaint)
+            assertTrue("Direct glyph U+${cp.toString(16)} must match the bundled font",
+                actual.sameAs(expected))
+        }
+    }
 
     @Test
     fun canvasRendersReportedIcons() {
