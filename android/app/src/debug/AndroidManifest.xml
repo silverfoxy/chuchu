@@ -1,4 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-    <application android:label="Chuchu (silverfoxy)" tools:replace="android:label" />
+    <application android:label="Chuchu (silverfoxy)" tools:replace="android:label">
+        <activity android:name="com.jossephus.chuchu.MainActivity"
+            android:label="Chuchu (silverfoxy)" tools:replace="android:label" />
+    </application>
 </manifest>
