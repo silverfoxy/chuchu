@@ -581,24 +581,25 @@ fun TerminalScreen(
     }
 
     if (showPassphrasePrompt) {
+        val connectWithPassphrase: () -> Unit = {
+            val spec = pendingTabSpec
+            showPassphrasePrompt = false
+            if (spec != null) {
+                val preparedSpec = spec.copy(keyPassphrase = passphraseInput)
+                if (preparedSpec.usesRuntimeMultiplexer) {
+                    vm.initiateMultiplexerOpen(preparedSpec)
+                } else {
+                    vm.openTab(preparedSpec)
+                }
+            }
+            passphraseInput = ""
+            pendingTabSpec = null
+            passphraseFromPicker = false
+        }
         ChuDialog(
             title = stringResource(R.string.terminal_key_passphrase),
             confirmLabel = stringResource(R.string.dialog_confirm_connect),
-            onConfirm = {
-                val spec = pendingTabSpec
-                showPassphrasePrompt = false
-                if (spec != null) {
-                    val preparedSpec = spec.copy(keyPassphrase = passphraseInput)
-                    if (preparedSpec.usesRuntimeMultiplexer) {
-                        vm.initiateMultiplexerOpen(preparedSpec)
-                    } else {
-                        vm.openTab(preparedSpec)
-                    }
-                }
-                passphraseInput = ""
-                pendingTabSpec = null
-                passphraseFromPicker = false
-            },
+            onConfirm = connectWithPassphrase,
             onDismiss = {
                 showPassphrasePrompt = false
                 passphraseInput = ""
@@ -613,6 +614,7 @@ fun TerminalScreen(
                 value = passphraseInput,
                 onValueChange = { passphraseInput = it },
                 label = stringResource(R.string.field_passphrase),
+                onSubmit = connectWithPassphrase,
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
                 modifier = Modifier.fillMaxWidth(),

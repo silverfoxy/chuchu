@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -22,6 +23,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
@@ -43,6 +50,7 @@ fun ChuTextField(
         capitalization = KeyboardCapitalization.None,
         autoCorrectEnabled = false,
     ),
+    onSubmit: (() -> Unit)? = null,
     autoFocus: Boolean = true,
     textAlign: TextAlign = TextAlign.Start,
 ) {
@@ -75,6 +83,16 @@ fun ChuTextField(
             modifier = Modifier
                 .fillMaxWidth()
                 .focusRequester(focusRequester)
+                .onPreviewKeyEvent { event ->
+                    if (singleLine && onSubmit != null &&
+                        (event.key == Key.Enter || event.key == Key.NumPadEnter)
+                    ) {
+                        if (event.type == KeyEventType.KeyUp) onSubmit()
+                        true
+                    } else {
+                        false
+                    }
+                }
                 .background(if (focused) colors.surface else Color.Transparent, shape)
                 .border(
                     BorderStroke(1.dp, if (focused) colors.accent else colors.border),
@@ -83,7 +101,12 @@ fun ChuTextField(
                 .padding(horizontal = 10.dp, vertical = 9.dp),
             singleLine = singleLine,
             textStyle = typography.body.copy(color = colors.textPrimary, textAlign = textAlign),
-            keyboardOptions = keyboardOptions,
+            keyboardOptions = if (singleLine && onSubmit != null) {
+                keyboardOptions.copy(imeAction = ImeAction.Done)
+            } else {
+                keyboardOptions
+            },
+            keyboardActions = KeyboardActions(onDone = { onSubmit?.invoke() }),
             visualTransformation = visualTransformation,
             interactionSource = interactionSource,
             cursorBrush = SolidColor(colors.accent),

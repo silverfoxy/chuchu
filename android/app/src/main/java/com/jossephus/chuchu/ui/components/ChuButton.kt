@@ -20,6 +20,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -121,6 +126,16 @@ fun ChuButton(
     ChuButtonSurface(
         modifier = modifier
             .then(semanticsModifier)
+            .onPreviewKeyEvent { event ->
+                if (enabled && (event.key == Key.Enter || event.key == Key.NumPadEnter)) {
+                    // Consume both edges so clickable cannot also activate the button.
+                    // Key-up fires once, even when a held key generates repeats.
+                    if (event.type == KeyEventType.KeyUp) onClick()
+                    true
+                } else {
+                    false
+                }
+            }
             .clickable(
                 enabled = enabled,
                 interactionSource = interactionSource,
