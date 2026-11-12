@@ -967,19 +967,19 @@ private const val TEXT_STYLE_MASK: Int =
         TerminalSnapshot.CELL_FLAG_UNDERLINE or
         TerminalSnapshot.CELL_FLAG_FAINT
 
-private const val PAINT_PRIMARY: Int = 0
-private const val PAINT_SYMBOLS: Int = 1
-private const val PAINT_FALLBACK: Int = 2
-private const val PAINT_EMOJI: Int = 3
+internal const val PAINT_PRIMARY: Int = 0
+internal const val PAINT_SYMBOLS: Int = 1
+internal const val PAINT_FALLBACK: Int = 2
+internal const val PAINT_EMOJI: Int = 3
 
 /**
  * Decide which paint should render a grapheme cluster.
  *
  * Order of preference:
- *  1. If the primary text font can render the cluster, use it (keeps code
- *     glyph metrics intact).
- *  2. Else, if the first codepoint lives in a Nerd Font private-use range
- *     and the symbols paint has the glyph, use the symbols (Nerd Font) paint.
+ *  1. Prefer the bundled symbols font for Nerd Font private-use characters.
+ *     Android hasGlyph also checks system fallback, which may map these
+ *     codepoints to unrelated vendor glyphs.
+ *  2. Else, use the primary text font to preserve code glyph metrics.
  *  3. Else, use Android's system fallback when it covers the complete glyph.
  *  4. Else, use bundled Noto Sans Symbols 2 as a deterministic symbol fallback.
  *  5. Finally, use the system paint to render its missing-glyph marker.
@@ -989,7 +989,7 @@ private const val PAINT_EMOJI: Int = 3
  *     paint that can shape emoji ZWJ sequences, regional-indicator flag
  *     pairs, and VS16-promoted color emoji.
  */
-private fun pickPaintChoice(
+internal fun pickPaintChoice(
     glyph: String,
     cache: HashMap<String, Int>,
     primaryPaint: Paint,
@@ -998,18 +998,18 @@ private fun pickPaintChoice(
     emojiPaint: Paint,
 ): Int {
     return cache.getOrPut(glyph) {
-        if (primaryPaint.hasGlyph(glyph)) return@getOrPut PAINT_PRIMARY
         val firstCp = glyph.codePointAt(0)
         if (isNerdFontPrivateUse(firstCp) && symbolsPaint.hasGlyph(glyph)) {
             return@getOrPut PAINT_SYMBOLS
         }
+        if (primaryPaint.hasGlyph(glyph)) return@getOrPut PAINT_PRIMARY
         if (emojiPaint.hasGlyph(glyph)) return@getOrPut PAINT_EMOJI
         if (fallbackPaint.hasGlyph(glyph)) return@getOrPut PAINT_FALLBACK
         PAINT_EMOJI
     }
 }
 
-private fun pickPaintChoice(
+internal fun pickPaintChoice(
     codepoint: Int,
     glyphCache: HashMap<Int, String>,
     cache: HashMap<Int, Int>,
@@ -1023,10 +1023,10 @@ private fun pickPaintChoice(
 
     return cache.getOrPut(codepoint) {
         val glyph = glyphCache.getOrPut(codepoint) { String(Character.toChars(codepoint)) }
-        if (primaryPaint.hasGlyph(glyph)) return@getOrPut PAINT_PRIMARY
         if (isNerdFontPrivateUse(codepoint) && symbolsPaint.hasGlyph(glyph)) {
             return@getOrPut PAINT_SYMBOLS
         }
+        if (primaryPaint.hasGlyph(glyph)) return@getOrPut PAINT_PRIMARY
         if (emojiPaint.hasGlyph(glyph)) return@getOrPut PAINT_EMOJI
         if (fallbackPaint.hasGlyph(glyph)) return@getOrPut PAINT_FALLBACK
         PAINT_EMOJI
