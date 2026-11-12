@@ -63,6 +63,11 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Keep fork test builds distinguishable and installable beside upstream.
+            applicationIdSuffix = ".silverfoxy"
+            versionNameSuffix = "-silverfoxy"
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
